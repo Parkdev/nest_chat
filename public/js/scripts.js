@@ -1,3 +1,5 @@
+const socket = io('/chatting');
+
 // 해당 아이디를 가진 DOM 요소를 가져오는 함수
 const getElementById = (id) => document.getElementById(id) || null;
 
@@ -8,6 +10,10 @@ const formElemnt = getElementById('chat_form');
 
 function helloUser() {
   const username = prompt('What is your name?');
+  socket.emit('new_user', username);
+  socket.on('welcome', (data) => {
+    console.log(data);
+  });
 }
 
 function init() {
