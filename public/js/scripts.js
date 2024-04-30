@@ -9,7 +9,9 @@ const chattingBoxElement = getElementById('chatting_box');
 const formElement = getElementById('chat_form'); // 뷰에 인댁스에 chatform
 
 //* global socket handler
-socket.on('user_connected', (username) => {
+socket.on('user_connected', (data) => {
+  const { count, username } = data;
+  refreshUserCount(count);
   drawNewChat(`${username} connected`);
 });
 
@@ -39,6 +41,7 @@ const handleSubmit = (event) => {
 //* draw functions
 const drawHelloStranger = (username) =>
   (helloStrangerElement.innerText = `Hello ${username} Stranger :)`);
+
 const drawNewChat = (message, isMe = false) => {
   const wrapperChatBox = document.createElement('div');
   wrapperChatBox.className = 'clearfix';
@@ -59,10 +62,16 @@ const drawNewChat = (message, isMe = false) => {
   chattingBoxElement.append(wrapperChatBox);
 };
 
+const refreshUserCount = (count) => {
+  const userCountElement = getElementById('user_count');
+  userCountElement.innerText = `현재 ${count} 접속중`;
+};
+
 function helloUser() {
   const username = prompt('What is your name?');
-  socket.emit('new_user', username, (data) => {
-    drawHelloStranger(data);
+  socket.emit('new_user', username, ({ username, count }) => {
+    drawHelloStranger(username);
+    refreshUserCount(count);
   });
 }
 

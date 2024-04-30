@@ -74,6 +74,7 @@ export class ChatsGateway
     // username db에 적재
     // 유저가 이미 등록되어있는지 확인
     const exist = await this.socketModel.exists({ username: username });
+    const count = await this.socketModel.countDocuments();
     if (exist) {
       // 0과 1 사이 랜덤한 실수 생성 후 100 곱, 소수점 삭제
       // 더 많은 유저가 들어온다고 가정한다면 uuid를 사용하면된다.
@@ -90,8 +91,8 @@ export class ChatsGateway
     }
 
     // 이후 브로드캐스팅 적제
-    socket.broadcast.emit('user_connected', username); // 연결된 모든 소캣에 데이터를 보냄
-    return username;
+    socket.broadcast.emit('user_connected', { count, username }); // 연결된 모든 소캣에 데이터를 보냄
+    return { username, count };
   }
 
   @SubscribeMessage('submit_chat')
