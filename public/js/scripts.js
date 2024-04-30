@@ -18,13 +18,17 @@ socket.on('new_chat', (data) => {
   drawNewChat(`${username} : ${chat}`);
 });
 
+socket.on('user_disconnected', (username) => {
+  drawNewChat(`${username} disconnected`);
+});
+
 //* event callback functions
 const handleSubmit = (event) => {
   event.preventDefault();
   const inputValue = event.target.elements[0].value;
   console.log(inputValue);
   if (inputValue !== '') {
-    socket.emit('send_message', inputValue);
+    socket.emit('submit_chat', inputValue);
     //화면에 그리기
 
     drawNewChat(`me : ${inputValue}`);

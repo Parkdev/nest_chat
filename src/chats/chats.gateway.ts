@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
 import {
   ConnectedSocket,
   MessageBody,
@@ -9,6 +10,9 @@ import {
   WebSocketGateway,
 } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
+import { Chatting } from './models/chattings.model';
+import { Socket as SocketModel } from './models/sockets.model';
+import { Model } from 'mongoose';
 
 @WebSocketGateway({ namespace: 'chatting' })
 export class ChatsGateway
@@ -16,7 +20,12 @@ export class ChatsGateway
 {
   private logger = new Logger('chat');
 
-  constructor() {
+  constructor(
+    // 모델(스키마) 의존성 주입
+    @InjectModel(Chatting.name) private readonly chattingModel: Model<Chatting>,
+    @InjectModel(SocketModel.name)
+    private readonly socketModel: Model<SocketModel>,
+  ) {
     this.logger.log('constructor');
   }
 
@@ -34,9 +43,15 @@ export class ChatsGateway
     this.logger.log(`connect : ${socket.id} ${socket.nsp.name}`);
   }
 
-  handleDisconnect(@ConnectedSocket() socket: Socket) {
+  async handleDisconnect(@ConnectedSocket() socket: Socket) {
     console.log('클라이언트 접속 해제');
-    this.logger.log(`connect : ${socket.id} ${socket.nsp.name}`);
+    const user = await this.socketModel.findOne({ id: socket.id });
+    if (user) {
+      socket.broadcast.emit('user_disconnected', user.username);
+      await user.deleteOne();
+      console.log('유저 삭제');
+    }
+    this.logger.log(`disconnect : ${socket.id} ${socket.nsp.name}`);
   }
 
   //   @SubscribeMessage('new_user') // new_user라는 이벤트를 받았을 때
@@ -52,24 +67,49 @@ export class ChatsGateway
   // }
 
   @SubscribeMessage('new_user')
-  handleNewUser(
+  async handleNewUser(
     @MessageBody() username: string,
     @ConnectedSocket() socket: Socket,
   ) {
     // username db에 적재
+    // 유저가 이미 등록되어있는지 확인
+    const exist = await this.socketModel.exists({ username: username });
+    if (exist) {
+      // 0과 1 사이 랜덤한 실수 생성 후 100 곱, 소수점 삭제
+      // 더 많은 유저가 들어온다고 가정한다면 uuid를 사용하면된다.
+      username = `${username}_${Math.floor(Math.random() * 100)}`;
+      await this.socketModel.create({
+        id: socket.id,
+        username,
+      });
+    } else {
+      await this.socketModel.create({
+        id: socket.id,
+        username,
+      });
+    }
+
     // 이후 브로드캐스팅 적제
     socket.broadcast.emit('user_connected', username); // 연결된 모든 소캣에 데이터를 보냄
     return username;
   }
 
-  @SubscribeMessage('send_message')
-  handleSubmitChat(
+  @SubscribeMessage('submit_chat')
+  async handleSubmitChat(
     @MessageBody() chat: string,
     @ConnectedSocket() socket: Socket,
   ) {
+    const socketObj = await this.socketModel.findOne({ id: socket.id });
+    console.log('유저찾음', socketObj);
+
+    await this.chattingModel.create({
+      user: socketObj,
+      chat: chat,
+    });
+
     socket.broadcast.emit('new_chat', {
       chat,
-      username: socket.id,
+      username: socketObj.username,
     }); // 연결된 모든 소캣에 데이터를 보냄
   }
 }
