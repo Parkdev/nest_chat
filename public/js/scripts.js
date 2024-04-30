@@ -37,19 +37,26 @@ const handleSubmit = (event) => {
 };
 
 //* draw functions
-const drawHelloStranger = (username) => {
-  return (helloStrangerElement.innerText = `Hello ${username} Stranger :)`);
-};
-
-const drawNewChat = (message) => {
+const drawHelloStranger = (username) =>
+  (helloStrangerElement.innerText = `Hello ${username} Stranger :)`);
+const drawNewChat = (message, isMe = false) => {
   const wrapperChatBox = document.createElement('div');
-  const chatBox = `
-  <div>
-  ${message}
-  </div>
-  `;
+  wrapperChatBox.className = 'clearfix';
+  let chatBox;
+  if (!isMe)
+    chatBox = `
+    <div class='bg-gray-300 w-3/4 mx-4 my-2 p-2 rounded-lg clearfix break-all'>
+      ${message}
+    </div>
+    `;
+  else
+    chatBox = `
+    <div class='bg-white w-3/4 ml-auto mr-4 my-2 p-2 rounded-lg clearfix break-all'>
+      ${message}
+    </div>
+    `;
   wrapperChatBox.innerHTML = chatBox;
-  chattingBoxElement.appendChild(wrapperChatBox);
+  chattingBoxElement.append(wrapperChatBox);
 };
 
 function helloUser() {
