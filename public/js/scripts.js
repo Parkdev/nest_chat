@@ -11,17 +11,20 @@ const formElement = getElementById('chat_form'); // 뷰에 인댁스에 chatform
 //* global socket handler
 socket.on('user_connected', (data) => {
   const { count, username } = data;
+  const color = getUsernameColor(username);
   refreshUserCount(count);
-  drawNewChat(`${username} connected`);
+  drawNewChat(`${username} connected`, '', color);
 });
 
 socket.on('new_chat', (data) => {
   const { chat, username } = data;
-  drawNewChat(`${username} : ${chat}`);
+  const color = getUsernameColor(username);
+  drawNewChat(`${username} : ${chat}`, '', color);
 });
 
 socket.on('user_disconnected', (username) => {
-  drawNewChat(`${username} disconnected`);
+  const color = getUsernameColor(username);
+  drawNewChat(`${username} disconnected`, '', color);
 });
 
 //* event callback functions
@@ -33,7 +36,7 @@ const handleSubmit = (event) => {
     socket.emit('submit_chat', inputValue);
     //화면에 그리기
 
-    drawNewChat(`me : ${inputValue}`);
+    drawNewChat(`me : ${inputValue}`, (isMe = true));
     event.target.elements[0].value = '';
   }
 };
@@ -42,19 +45,22 @@ const handleSubmit = (event) => {
 const drawHelloStranger = (username) =>
   (helloStrangerElement.innerText = `Hello ${username} Stranger :)`);
 
-const drawNewChat = (message, isMe = false) => {
+const drawNewChat = (message, isMe = false, color = 'black') => {
   const wrapperChatBox = document.createElement('div');
   wrapperChatBox.className = 'clearfix';
   let chatBox;
   if (!isMe)
     chatBox = `
-    <div class='bg-gray-300 w-3/4 mx-4 my-2 p-2 rounded-lg clearfix break-all'>
+    <div
+    class='bg-gray-300 w-3/4 mx-4 my-2 p-2 rounded-lg clearfix break-all'
+    style='color: ${color}'
+    >
       ${message}
     </div>
     `;
   else
     chatBox = `
-    <div class='bg-white w-3/4 ml-auto mr-4 my-2 p-2 rounded-lg clearfix break-all'>
+    <div class='bg-white w-3/4 ml-auto mr-4 my-2 p-2 rounded-lg clearfix break-all '>
       ${message}
     </div>
     `;
@@ -62,10 +68,26 @@ const drawNewChat = (message, isMe = false) => {
   chattingBoxElement.append(wrapperChatBox);
 };
 
+//* additional functions
 const refreshUserCount = (count) => {
   const userCountElement = getElementById('user_count');
-  userCountElement.innerText = `현재 ${count} 접속중`;
+  userCountElement.innerText = `현재 ${count} 명 접속중`;
 };
+
+function getUsernameColor(username) {
+  let hash = 7;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + (hash << 5) - hash;
+  }
+
+  let hue = 100 + (hash % 260);
+  let saturation = 60 + (hash % 30); // 70-100%
+  let lightness = 40 + (hash % 40); // 30-70%
+
+  let color = `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+
+  return color;
+}
 
 function helloUser() {
   const username = prompt('What is your name?');
